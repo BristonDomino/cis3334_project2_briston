@@ -11,7 +11,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      //scrollBehavior: const ConstantScrollBehavior(),
       title: 'Focus Buddy',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
@@ -19,6 +21,27 @@ class MyApp extends StatelessWidget {
       home: const MainScreen(),
     );
   }
+}
+
+class ConstantScrollBehavior  extends ScrollBehavior{
+  const ConstantScrollBehavior();
+
+  @override
+  Widget buildScrollbar(
+      BuildContext context, Widget child, ScrollableDetails details) =>
+      child;
+
+  @override
+  Widget buildOverscrollIndicator(
+      BuildContext context, Widget child, ScrollableDetails details) =>
+      child;
+
+  @override
+  TargetPlatform getPlatform(BuildContext context) => TargetPlatform.macOS;
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) =>
+      const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
 }
 
 class MainScreen extends StatefulWidget {
@@ -45,9 +68,9 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Focus Buddy'),
-      ),
+      // appBar: AppBar(
+      //   //title: const Text('Focus Buddy'),
+      // ),
       body: Center(
         child: _widgetOptions.elementAt(_selectedIndex),
       ),
@@ -70,11 +93,15 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 class TaskListScreen extends StatefulWidget {
-  const TaskListScreen({super.key});
+  const TaskListScreen({Key? key}) : super(key: key);
 
   @override
   State<TaskListScreen> createState() => _TaskListScreenState();
 }
+
+const String baseAssetURL =
+    'https://dartpad-workshops-io2021.web.app/getting_started_with_slivers/';
+const String headerImage = '${baseAssetURL}assets/header.jpeg';
 
 class _TaskListScreenState extends State<TaskListScreen> {
   final List<Map<String, dynamic>> tasks = [
@@ -85,25 +112,99 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: tasks.length,
-      itemBuilder: (context, index) {
-        final task = tasks[index];
-        return ListTile(
-            title: Text(task['name']),
-            leading: CustomAnimatedCheckbox(
-              value: task['completed'],
-              onChanged: (newValue) {
-                setState(() {
-                  task['completed'] = newValue;
-                });
+    return Scaffold(
+        body: CustomScrollView(
+          slivers: <Widget>[
+            SliverAppBar(
+              expandedHeight: 200.0,
+              backgroundColor: Colors.teal[800],
+              floating: false,
+              pinned: true,
+              onStretchTrigger: () async {
+                print('Load new data');
               },
-            )
-        );
-      },
+              flexibleSpace: FlexibleSpaceBar(
+                stretchModes: const <StretchMode> [
+                  StretchMode.zoomBackground,
+                  StretchMode.blurBackground,
+                  StretchMode.fadeTitle,
+                ],
+                title: const Text('Focus Buddy'),
+                background: DecoratedBox(
+                  position: DecorationPosition.foreground,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.center,
+                      colors: <Color>[Colors.teal[800]!, Colors.transparent],
+                    ),
+                  ),
+                  child: Image.network(
+                    headerImage,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                    (BuildContext context, int index) {
+                  final task = tasks[index];
+                  return ListTile(
+                    title: Text(task['name']),
+                    leading: CustomAnimatedCheckbox(
+                      value: task['completed'],
+                      onChanged: (newValue) {
+                        setState(() {
+                          task['completed'] = newValue;
+                        });
+                      },
+                    ),
+                  );
+                },
+                childCount: tasks.length,
+              ),
+            ),
+          ],
+        )
     );
   }
 }
+
+// @override
+// Widget build(BuildContext context)
+// {
+//   return ListView.builder(
+//
+//       itemCount: tasks.length,
+//       itemBuilder: (context, index) {
+//         final task = tasks[index];
+//         return ListTile(
+//             title: Text(task['name']),
+//             leading: CustomAnimatedCheckbox(
+//                 value: task['completed'],
+//                 onChanged: (newValue) {
+//                   setState(() {
+//                     task['completed'] = newValue;
+//                   });
+//                 }
+//             )
+//         );
+//       }
+//   );
+// }
+
+Widget _buildAnimatedTask(Animation<double> animation, Map<String, dynamic> task) {
+  return SizeTransition(
+    sizeFactor: animation,
+    child: ListTile(
+      title: Text(task['name']),
+      // Other list tile properties...
+    ),
+  );
+}
+
+
 
 class TimerScreen extends StatelessWidget {
   const TimerScreen({super.key});
@@ -232,3 +333,5 @@ class _CustomAnimatedCheckboxState extends State<CustomAnimatedCheckbox>
     );
   }
 }
+
+
