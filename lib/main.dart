@@ -69,30 +69,36 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-class TaskListScreen extends StatelessWidget {
+class TaskListScreen extends StatefulWidget {
   const TaskListScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Temporary hardcoded tasks
-    final List<Map<String, dynamic>> tasks = [
-      {'name': 'Task 1', 'completed': false},
-      {'name': 'Task 2', 'completed': false},
-      {'name': 'Task 3', 'completed': false},
-    ];
+  State<TaskListScreen> createState() => _TaskListScreenState();
+}
 
+class _TaskListScreenState extends State<TaskListScreen> {
+  final List<Map<String, dynamic>> tasks = [
+    {'name': 'Task 1', 'completed': false},
+    {'name': 'Task 2', 'completed': false},
+    {'name': 'Task 3', 'completed': false},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
     return ListView.builder(
       itemCount: tasks.length,
       itemBuilder: (context, index) {
-        final String name = tasks[index]['name'] as String;
-        final bool completed = tasks[index]['completed'] as bool;
-        return CheckboxListTile(
-          title: Text(name),
-          value: completed,
-          onChanged: (bool? value) {
-            // here eventually update the task's completed status
-
-          },
+        final task = tasks[index];
+        return ListTile(
+            title: Text(task['name']),
+            leading: CustomAnimatedCheckbox(
+              value: task['completed'],
+              onChanged: (newValue) {
+                setState(() {
+                  task['completed'] = newValue;
+                });
+              },
+            )
         );
       },
     );
@@ -105,41 +111,124 @@ class TimerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const CircularProgressIndicator(
-              // this will be replaced with a custom timer indicator later
-              value: null, // for now, it's an indermaintae progress indicator
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    // Placeholder for start timer functionality
-                  },
-                  child: const Text('Start'),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    // Placeholder for pause timer functionality
-                  },
-                  child: const Text('Pause'),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    // Placeholder for reset timer functionality
-                  },
-                  child: const Text('Reset'),
-                ),
-              ],
-            ),
-          ],
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          const CircularProgressIndicator(
+            // this will be replaced with a custom timer indicator later
+            value: null, // for now, it's an indermaintae progress indicator
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  // Placeholder for start timer functionality
+                },
+                child: const Text('Start'),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: () {
+                  // Placeholder for pause timer functionality
+                },
+                child: const Text('Pause'),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: () {
+                  // Placeholder for reset timer functionality
+                },
+                child: const Text('Reset'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+class CustomAnimatedCheckbox extends StatefulWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const CustomAnimatedCheckbox({
+    Key? key,
+    required this.value,
+    required this.onChanged,
+  }) : super(key: key);
+
+  @override
+  _CustomAnimatedCheckboxState createState() => _CustomAnimatedCheckboxState();
+}
+
+class _CustomAnimatedCheckboxState extends State<CustomAnimatedCheckbox>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _sizeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _sizeAnimation = Tween<double>(begin: 0.0, end: 24.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+    if (widget.value) {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void didUpdateWidget(CustomAnimatedCheckbox oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        widget.onChanged(!widget.value);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: widget.value ? Colors.transparent : Colors.white, // Makes the entire container clickable
+          border: Border.all(
+            color: widget.value ? Colors.transparent : Colors.grey,
+            width: 1.0,
+          ),
+          borderRadius: BorderRadius.circular(4.0),
         ),
+        width: 24.0,
+        height: 24.0,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Icon(
+              Icons.check,
+              color: widget.value ? Colors.blue : Colors.transparent,
+              size: _sizeAnimation.value,
+            );
+          },
+        ),
+      ),
     );
   }
 }
