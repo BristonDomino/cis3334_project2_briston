@@ -1,4 +1,3 @@
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/adapters.dart';
@@ -21,117 +20,66 @@ const String headerImage = '$baseAssetURL.jpeg';
 
 class _TaskListScreenState extends State<TaskListScreen> with TickerProviderStateMixin {
   late Box<Task> tasksBox;
-  late List<Task> _tasks;
-  late List<AnimationController> _controllers;
-  //List<AnimationController> _controllers = [];
-  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
-
-  @override
-  void initState() {
-    openBox();
-    super.initState();
-    _tasks = []; // Initialize your tasks list here
-    _controllers = _tasks.map((task) => AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    )).toList();
-  }
+  Map<String, AnimationController> _controllers = {};
 
   @override
   void dispose() {
     // Dispose of all animation controllers
-    for (var controller in _controllers) {
+    for (var controller in _controllers.values) {
       controller.dispose();
     }
-    tasksBox.close();
     super.dispose();
   }
 
-  void _addTask(String taskName) async {
-    openBox();
+  void addTask(String taskName) async {
     final newTask = Task(id: UniqueKey().toString(), name: taskName);
     await tasksBox.add(newTask);
-    setState(() {
-      _tasks.insert(0, newTask); // Insert at the top of the list
-      final controller = AnimationController(
-        duration: const Duration(milliseconds: 500),
-        vsync: this,
-      );
-      _controllers.insert(0, controller);
-      controller.forward();
-      _listKey.currentState!.insertItem(0);
-    });
-  }
-
-  void deleteTask(Task task, int index) async {
-    final controller = _controllers[index];
-    await controller.reverse();
-    await tasksBox.delete(task.key); // Use the key to delete the task from the box
-    setState(() {
-      _tasks.removeAt(index);
-      _controllers.removeAt(index);
-    });
-    controller.dispose();
-  }
-
-  void _removeTask(int index) {
-    // Call this method when you want to remove a task
-    var task = _tasks.removeAt(index);
-    _controllers[index].reverse().then<void>((void value) {
-      _controllers.removeAt(index).dispose();
-    });
-    _listKey.currentState!.removeItem(index, (context, animation) {
-      return _buildRemovedItem(task, animation);
-    });
-  }
-
-  Widget _buildRemovedItem(Task task, Animation<double> animation) {
-    // This builds the widget for the task that is being removed
-    return SizeTransition(
-      sizeFactor: animation,
-      child: ListTile(
-        title: Text(task.name),
-        // other list tile properties
-      ),
+    // Create a new controller for the new task
+    final controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
     );
+    _controllers[newTask.id] = controller;
+    controller.forward(); // Start the animation for adding
+    setState(() {});
   }
 
-  Widget _buildAnimatedTask(Animation<double> animation, Task task) {
-    return SizeTransition(
-      sizeFactor: animation,
-      child: ListTile(
-        title: Text(task.name, style: const TextStyle(color: Colors.white)),
-        leading: CustomAnimatedCheckbox(
-          value: task.completed,
-          onChanged: (value) => toggleTaskCompleted(task),
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete, color: Colors.white),
-          onPressed: () {
-            // Find the index of the task to delete
-            int index = _tasks.indexOf(task);
-            // Remove the task from the list with an animation
-            _listKey.currentState!.removeItem(
-              index,
-                  (context, animation) => _buildAnimatedTask(animation, task),
-              duration: const Duration(milliseconds: 300),
-            );
-            // Perform the actual deletion
-            deleteTask(task, index);
-          },
-        ),
-      ),
-    );
+  void deleteTask(Task task) async {
+    // final controller = _controllers[task.id];
+    // if (controller != null) {
+    //   await controller.reverse();
+    await task.delete();
+    // _controllers.remove(task.id);
+    // controller.dispose();
+    setState(() {});
+    //}
   }
+
+  // Widget _buildAnimatedTask(AnimationController controller, Task task) {
+  //   return SizeTransition(
+  //     sizeFactor: CurvedAnimation(parent: controller, curve: Curves.easeOut),
+  //     child: ListTile(
+  //         title: Text(task.name, style: const TextStyle(color: Colors.white)),
+  //         leading: CustomAnimatedCheckbox(
+  //           value: task.completed,
+  //           onChanged: (value) => toggleTaskCompleted(task),
+  //         ),
+  //         trailing: IconButton(
+  //           icon: const Icon(Icons.delete, color: Colors.white),
+  //           onPressed: () => deleteTask(task),
+  //         )
+  //     ),
+  //   );
+  // }
 
   void _showAddTaskDialog() {
     showDialog<String>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: const Text('Add a new Task'),
+        title: const Text('Add a new Tasks'),
         content: TextField(
           onSubmitted: (value) {
-            _addTask(value); // Pass the task name directly
+            addTask(value);
             Navigator.pop(context);
           },
           decoration: const InputDecoration(hintText: "Enter task name"),
@@ -144,6 +92,19 @@ class _TaskListScreenState extends State<TaskListScreen> with TickerProviderStat
         ],
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    tasksBox = widget.tasksBox;
+
+    _controllers = {
+      for (var k in tasksBox.keys) k.toString(): AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 300),
+      )..forward(),
+    };
   }
 
   Future openBox() async {
@@ -160,59 +121,29 @@ class _TaskListScreenState extends State<TaskListScreen> with TickerProviderStat
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Focus Buddy'),
-      ),
-      body: CustomScrollView(
-        slivers: <Widget> [
-          SliverAppBar(
-            expandedHeight: 300.0,
-            backgroundColor: Colors.teal[800],
-            floating: false,
-            pinned: true,
-            onStretchTrigger: () async {
-              if (kDebugMode) {
-                print('Load new data');
-              }
-            },
-            flexibleSpace: FlexibleSpaceBar(
-              stretchModes: const <StretchMode>[
-                StretchMode.zoomBackground,
-                StretchMode.blurBackground,
-                StretchMode.fadeTitle,
-              ],
-              title: const Text('Focus Buddy'),
-              background: DecoratedBox(
-                position: DecorationPosition.foreground,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.center,
-                    colors: <Color>[Colors.cyan[900]!, Colors.transparent],
-                  ),
-                ),
-                child: Image.network(
-                  headerImage,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          ),
+      backgroundColor: Colors.black,
+      body: ValueListenableBuilder(
+        valueListenable: tasksBox.listenable(),
+        builder: (context, Box<Task> box, _) {
+          List<Task> tasks = box.values.toList();
+          if (tasks.isEmpty) {
+            // If no tasks are present, display a placeholder
+            return const Center(child: Text("No tasks yet", style: TextStyle(color: Colors.white)));
+          }
 
-          SliverToBoxAdapter(
-            child: SizedBox(
-              // Provide a specific height if necessary
-              height: 1,
-              child: AnimatedList(
-                  key: _listKey,
-                  initialItemCount: _tasks.length,
-                  itemBuilder: (context, index, animation) {
-                    return _buildItem(_tasks[index], animation, index);
-                  }
-              ),
-            ),
-          ),
-        ],
+          return buildCustomScrollView(tasks);
+          // return ListView.builder(
+          //   itemCount: tasks.length,
+          //   itemBuilder: (context, index) {
+          //     final task = tasks[index];
+          //     final controller = _controllers[task.id];
+          //     // If the controller does not exist for some reason, avoid building the widget
+          //     if (controller == null) {
+          //       return Container();
+          //     }
+          //     //return _buildAnimatedTask(controller, task);
+
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddTaskDialog,
@@ -222,89 +153,72 @@ class _TaskListScreenState extends State<TaskListScreen> with TickerProviderStat
     );
   }
 
-  Widget _buildItem(Task task, Animation<double> animation, int index) {
-    // This builds the widget for each task in the list
-    return SizeTransition(
-      sizeFactor: animation,
-      child: ListTile(
-        title: Text(task.name),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete),
-          onPressed: () {
-            _removeTask(index);
-          },
+  Widget buildCustomScrollView(List<Task> tasks) {
+    return CustomScrollView(slivers: <Widget>[
+      SliverAppBar(
+        expandedHeight: 300.0,
+        backgroundColor: Colors.teal[800],
+        floating: false,
+        pinned: true,
+        onStretchTrigger: () async {
+          if (kDebugMode) {
+            print('Load new data');
+          }
+        },
+        flexibleSpace: FlexibleSpaceBar(
+          stretchModes: const <StretchMode>[
+            StretchMode.zoomBackground,
+            StretchMode.blurBackground,
+            StretchMode.fadeTitle,
+          ],
+          title: const Text('Focus Buddy'),
+          background: DecoratedBox(
+            position: DecorationPosition.foreground,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.center,
+                colors: <Color>[Colors.cyan[900]!, Colors.transparent],
+              ),
+            ),
+            child: Image.network(
+              headerImage,
+              fit: BoxFit.cover,
+            ),
+          ),
         ),
-        // other list tile properties
       ),
-    );
+      SliverList(
+          delegate: SliverChildBuilderDelegate(
+                (BuildContext context, int index) {
+              if (index < tasks.length) {
+                final task = tasks[index];
+                return ListTile(
+                  title: Text(
+                    task.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                    ),
+                  ),
+                  leading: CustomAnimatedCheckbox(
+                    value: task.completed,
+                    onChanged: (value) => toggleTaskCompleted(task),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () => deleteTask(task),
+                  ),
+                );
+              } else {
+                return null;
+              }
+            },
+            childCount: tasks.length,
+          )
+      )
+    ]);
   }
 }
-
-// Widget buildCustomScrollView(List<Task> tasks) {
-//   return CustomScrollView(slivers: <Widget>[
-//     SliverAppBar(
-//       expandedHeight: 300.0,
-//       backgroundColor: Colors.teal[800],
-//       floating: false,
-//       pinned: true,
-//       onStretchTrigger: () async {
-//         if (kDebugMode) {
-//           print('Load new data');
-//         }
-//       },
-//       flexibleSpace: FlexibleSpaceBar(
-//         stretchModes: const <StretchMode>[
-//           StretchMode.zoomBackground,
-//           StretchMode.blurBackground,
-//           StretchMode.fadeTitle,
-//         ],
-//         title: const Text('Focus Buddy'),
-//         background: DecoratedBox(
-//           position: DecorationPosition.foreground,
-//           decoration: BoxDecoration(
-//             gradient: LinearGradient(
-//               begin: Alignment.bottomCenter,
-//               end: Alignment.center,
-//               colors: <Color>[Colors.cyan[900]!, Colors.transparent],
-//             ),
-//           ),
-//           child: Image.network(
-//             headerImage,
-//             fit: BoxFit.cover,
-//           ),
-//         ),
-//       ),
-//     ),
-//     SliverList(
-//         delegate: SliverChildBuilderDelegate(
-//               (BuildContext context, int index) {
-//             if (index < tasks.length) {
-//               final task = tasks[index];
-//               return ListTile(
-//                 title: Text(
-//                   task.name,
-//                   style: const TextStyle(
-//                     color: Colors.white,
-//                   ),
-//                 ),
-//                 leading: CustomAnimatedCheckbox(
-//                   value: task.completed,
-//                   onChanged: (value) => toggleTaskCompleted(task),
-//                 ),
-//                 trailing: IconButton(
-//                   icon: const Icon(Icons.delete),
-//                   onPressed: () => deleteTask(task, index),
-//                 ),
-//               );
-//             } else {
-//               return null;
-//             }
-//           },
-//           childCount: tasks.length,
-//         )
-//     )
-//   ]);
-// }
 
 
 
@@ -354,7 +268,7 @@ class _CustomAnimatedCheckboxState extends State<CustomAnimatedCheckbox>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 300),
     );
     _sizeAnimation = Tween<double>(begin: 0.0, end: 24.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
