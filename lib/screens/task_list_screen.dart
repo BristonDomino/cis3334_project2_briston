@@ -13,6 +13,7 @@ class TaskListScreen extends StatefulWidget {
 }
 
 // todo: fix AnimatedTask
+// code without annaimations for adding and deleteing tasks
 
 const String baseAssetURL =
     'https://wallpapers.com/images/hd/calm-aesthetic-desktop-em3zhejov40rr4yj';
