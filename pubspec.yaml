@@ -33,6 +33,7 @@ dependencies:
   path_provider: ^2.1.1
   hive: ^2.0.4
   hive_flutter: ^1.1.0
+  audioplayers: ^5.2.1
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -57,6 +58,8 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  assets:
+    - assets/audio/synth_bell.mp3
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

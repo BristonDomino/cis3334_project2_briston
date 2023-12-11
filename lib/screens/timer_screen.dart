@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 const String baseAssetURL =
     'https://publish.purewow.net/wp-content/uploads/sites/2/2020/03/calming-pictures-cat.jpg?fit=728%2C524';
@@ -8,70 +11,180 @@ class TimerScreen extends StatefulWidget {
   const TimerScreen({Key? key}) : super(key: key);
 
   @override
-  _TimerScreenState  createState() => _TimerScreenState();
+  _TimerScreenState createState() => _TimerScreenState();
 }
 
+// todo: add notifications for timer is done
+// todo: add seconds
+
 class _TimerScreenState extends State<TimerScreen> {
+  late Timer? _timer;
+  int _timeInSeconds = 0;
+  final TextEditingController _hoursController = TextEditingController();
+  final TextEditingController _minutesController = TextEditingController();
+  final player = AudioPlayer();
+
+
+  void startTimer() {
+    _timeInSeconds = (int.tryParse(_hoursController.text) ?? 0) * 3600 +
+        (int.tryParse(_minutesController.text) ?? 0) * 60;
+
+    if (_timeInSeconds > 0) {
+      _timer = Timer.periodic(
+        const Duration(seconds: 1),
+            (Timer timer) {
+          if (_timeInSeconds < 1) {
+            timer.cancel();
+            _onTimerEnd();
+          } else {
+            setState(() {
+              _timeInSeconds--;
+            });
+          }
+        },
+      );
+    }
+  }
+
+  Future<void> _onTimerEnd() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User must tap button to close dialog
+      builder: (BuildContext context) {
+        return AlertDialog(
+            title: const Text('Time\'s up!'),
+            content: const SingleChildScrollView(
+              child: ListBody(
+                children: <Widget>[
+                  Text('Your timer is done.'),
+                ],
+              ),
+            ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                player.pause();
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    // Play timer done sound
+    await player.play(AssetSource('audio/synth_bell.mp3'));
+
+  }
+
+  void pauseTimer() {
+    _timer!.cancel();
+  }
+
+  void resetTimer() {
+    _timer!.cancel();
+    setState(() {
+      _timeInSeconds = 0;
+    });
+  }
+
+
+  @override
+  void dispose() {
+    _timer!.cancel();
+    _hoursController.dispose();
+    _minutesController.dispose();
+    super.dispose();
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-        body: CustomScrollView(
-            slivers: <Widget>[
-              SliverAppBar(
-                expandedHeight: 300.0,
-                floating: false,
-                pinned: true,
-                flexibleSpace: FlexibleSpaceBar(
-                  title: const Text('Focus Buddy'),
-                  background: Image.network(
-                    headerImage,
-                    fit: BoxFit.cover,
-                  ),
-                ),
+      body: CustomScrollView(
+        slivers: <Widget>[
+          SliverAppBar(
+            expandedHeight: 300.0,
+            floating: false,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              title: const Text('Focus Buddy'),
+              background: Image.network(
+                headerImage,
+                fit: BoxFit.cover,
               ),
-              SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          const CircularProgressIndicator(
-                            // this will be replaced with a custom timer indicator later
-                            value: null, // for now, it's an indermaintae progress indicator
+            ),
+          ),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    '${(_timeInSeconds ~/ 3600).toString().padLeft(
+                        2, '0')}:${((_timeInSeconds % 3600) ~/ 60)
+                        .toString()
+                        .padLeft(2, '0')}:${(_timeInSeconds % 60)
+                        .toString()
+                        .padLeft(2, '0')}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 48,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _hoursController,
+                          decoration: const InputDecoration(
+                            labelText: 'Hours',
+                            labelStyle: TextStyle(color: Colors.white),
                           ),
-                          const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ElevatedButton(
-                                onPressed: () {
-                                  // Placeholder for start timer functionality
-                                },
-                                child: const Text('Start'),
-                              ),
-                              const SizedBox(width: 10),
-                              ElevatedButton(
-                                onPressed: () {
-                                  // Placeholder for pause timer functionality
-                                },
-                                child: const Text('Pause'),
-                              ),
-                              const SizedBox(width: 10),
-                              ElevatedButton(
-                                onPressed: () {
-                                  // Placeholder for reset timer functionality
-                                },
-                                child: const Text('Reset'),
-                              ),
-                            ],
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(2),
+                          ],
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _minutesController,
+                          decoration: const InputDecoration(
+                            labelText: 'Minutes',
+                            labelStyle: TextStyle(color: Colors.white),
                           ),
-                        ],
-                      )
-                  )
-              )
-            ]
-        )
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(2),
+                          ],
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: startTimer,
+                    child: const Text('Start Timer'),
+                  ),
+                  // ... Other buttons
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
