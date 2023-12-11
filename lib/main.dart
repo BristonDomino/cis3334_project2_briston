@@ -12,12 +12,14 @@ Future<void> main() async {
   Hive.init(appDocumentDir.path);
 
   Hive.registerAdapter(TaskAdapter());
-  await Hive.openBox<Task>('tasks');
-  runApp(const MyApp());
+
+  final tasksBox = await Hive.openBox<Task>('tasks');
+  runApp(MyApp(tasksBox: tasksBox));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final Box<Task> tasksBox;
+  const MyApp({super.key, required this.tasksBox});
 
   // This widget is the root of your application.
   @override
@@ -48,7 +50,7 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _widgetOptions = <Widget>[
-    const TaskListScreen(),
+    TaskListScreen(tasksBox: Hive.box<Task>('tasks')),
     const TimerScreen(),
   ];
 
@@ -86,14 +88,7 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 
-Widget _buildAnimatedTask(Animation<double> animation, Map<String, dynamic> task) {
-  return SizeTransition(
-    sizeFactor: animation,
-    child: ListTile(
-      title: Text(task['name']),
-    ),
-  );
-}
+
 
 
 
