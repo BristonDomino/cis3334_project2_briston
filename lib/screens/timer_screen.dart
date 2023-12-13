@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 const String baseAssetURL =
     'https://publish.purewow.net/wp-content/uploads/sites/2/2020/03/calming-pictures-cat.jpg?fit=728%2C524';
@@ -17,13 +18,25 @@ class TimerScreen extends StatefulWidget {
 // todo: add notifications for timer is done
 // todo: add seconds
 
-class _TimerScreenState extends State<TimerScreen> {
+class _TimerScreenState extends State<TimerScreen> with AutomaticKeepAliveClientMixin{
   late Timer? _timer;
   int _timeInSeconds = 0;
   final TextEditingController _hoursController = TextEditingController();
   final TextEditingController _minutesController = TextEditingController();
   final player = AudioPlayer();
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState()
+  {
+    super.initState();
+    var androidInitialize = const AndroidInitializationSettings('ic_stat_notify.png');
+    var initializationsSettings = InitializationSettings(android: androidInitialize);
+    flutterLocalNotificationsPlugin.initialize(initializationsSettings);
+  }
 
   void startTimer() {
     _timeInSeconds = (int.tryParse(_hoursController.text) ?? 0) * 3600 +
@@ -73,8 +86,29 @@ class _TimerScreenState extends State<TimerScreen> {
       },
     );
 
+    // loops until pause is press
+    await player.setReleaseMode(ReleaseMode.loop);
     // Play timer done sound
     await player.play(AssetSource('audio/synth_bell.mp3'));
+
+    // THis is the Schedule the notification
+    // Schedule the notification
+    var androidDetails = const AndroidNotificationDetails(
+      'channelId',
+      'Local Notification',
+      //'channelDescription',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    var generalNotificationDetails = NotificationDetails(android: androidDetails);
+
+    await flutterLocalNotificationsPlugin.show(
+        0,
+        'Timer Done',
+        'Your timer has finished!',
+        generalNotificationDetails,
+    );
 
   }
 
@@ -92,7 +126,9 @@ class _TimerScreenState extends State<TimerScreen> {
 
   @override
   void dispose() {
-    _timer!.cancel();
+    if (_timer?.isActive ?? false) {
+      _timer!.cancel();
+    }
     _hoursController.dispose();
     _minutesController.dispose();
     super.dispose();
@@ -101,6 +137,7 @@ class _TimerScreenState extends State<TimerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: Colors.black,
       body: CustomScrollView(

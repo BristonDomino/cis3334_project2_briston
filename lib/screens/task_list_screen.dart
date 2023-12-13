@@ -19,9 +19,12 @@ const String baseAssetURL =
     'https://wallpapers.com/images/hd/calm-aesthetic-desktop-em3zhejov40rr4yj';
 const String headerImage = '$baseAssetURL.jpeg';
 
-class _TaskListScreenState extends State<TaskListScreen> with TickerProviderStateMixin {
+class _TaskListScreenState extends State<TaskListScreen> with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   late Box<Task> tasksBox;
   Map<String, AnimationController> _controllers = {};
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void dispose() {
@@ -121,6 +124,7 @@ class _TaskListScreenState extends State<TaskListScreen> with TickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: Colors.black,
       body: ValueListenableBuilder(

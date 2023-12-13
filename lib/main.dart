@@ -46,28 +46,35 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with AutomaticKeepAliveClientMixin {
   int _selectedIndex = 0;
+  final PageController _pageController = PageController();
 
-  final List<Widget> _widgetOptions = <Widget>[
-    TaskListScreen(tasksBox: Hive.box<Task>('tasks')),
-    const TimerScreen(),
-  ];
+  @override
+  bool get wantKeepAlive => true;
+
+  // final List<Widget> _widgetOptions = <Widget>[
+  //   TaskListScreen(tasksBox: Hive.box<Task>('tasks')),
+  //   const TimerScreen(),
+  // ];
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    _pageController.jumpToPage(index);
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
-      // appBar: AppBar(
-      //   //title: const Text('Focus Buddy'),
-      // ),
-      body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() => _selectedIndex = index);
+        },
+      children: <Widget>[
+        TaskListScreen(tasksBox: Hive.box<Task>('tasks')),
+        const TimerScreen(),
+      ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
