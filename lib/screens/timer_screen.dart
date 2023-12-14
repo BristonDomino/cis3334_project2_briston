@@ -16,36 +16,44 @@ class TimerScreen extends StatefulWidget {
 }
 
 // todo: add notifications for timer is done
-// todo: add seconds
 
-class _TimerScreenState extends State<TimerScreen> with AutomaticKeepAliveClientMixin{
+class _TimerScreenState extends State<TimerScreen>
+    with AutomaticKeepAliveClientMixin {
   late Timer? _timer;
   int _timeInSeconds = 0;
   final TextEditingController _hoursController = TextEditingController();
   final TextEditingController _minutesController = TextEditingController();
   final player = AudioPlayer();
-  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   @override
   bool get wantKeepAlive => true;
 
   @override
-  void initState()
-  {
+  void initState() {
     super.initState();
-    var androidInitialize = const AndroidInitializationSettings('ic_stat_notify.png');
-    var initializationsSettings = InitializationSettings(android: androidInitialize);
+    var androidInitialize =
+        const AndroidInitializationSettings('ic_stat_notify.png');
+    var initializationsSettings =
+        InitializationSettings(android: androidInitialize);
     flutterLocalNotificationsPlugin.initialize(initializationsSettings);
   }
 
   void startTimer() {
+    if (_timer != null && _timer!.isActive) {
+      _timer!.cancel();
+    }
+
+    // Convert input to seconds
     _timeInSeconds = (int.tryParse(_hoursController.text) ?? 0) * 3600 +
         (int.tryParse(_minutesController.text) ?? 0) * 60;
 
+    // only start a new if the timer is greater than zero
     if (_timeInSeconds > 0) {
       _timer = Timer.periodic(
         const Duration(seconds: 1),
-            (Timer timer) {
+        (Timer timer) {
           if (_timeInSeconds < 1) {
             timer.cancel();
             _onTimerEnd();
@@ -65,14 +73,14 @@ class _TimerScreenState extends State<TimerScreen> with AutomaticKeepAliveClient
       barrierDismissible: false, // User must tap button to close dialog
       builder: (BuildContext context) {
         return AlertDialog(
-            title: const Text('Time\'s up!'),
-            content: const SingleChildScrollView(
-              child: ListBody(
-                children: <Widget>[
-                  Text('Your timer is done.'),
-                ],
-              ),
+          title: const Text('Time\'s up!'),
+          content: const SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Your timer is done.'),
+              ],
             ),
+          ),
           actions: <Widget>[
             TextButton(
               child: const Text('OK'),
@@ -101,15 +109,15 @@ class _TimerScreenState extends State<TimerScreen> with AutomaticKeepAliveClient
       priority: Priority.high,
     );
 
-    var generalNotificationDetails = NotificationDetails(android: androidDetails);
+    var generalNotificationDetails =
+        NotificationDetails(android: androidDetails);
 
     await flutterLocalNotificationsPlugin.show(
-        0,
-        'Timer Done',
-        'Your timer has finished!',
-        generalNotificationDetails,
+      0,
+      'Timer Done',
+      'Your timer has finished!',
+      generalNotificationDetails,
     );
-
   }
 
   void pauseTimer() {
@@ -123,7 +131,6 @@ class _TimerScreenState extends State<TimerScreen> with AutomaticKeepAliveClient
     });
   }
 
-
   @override
   void dispose() {
     if (_timer?.isActive ?? false) {
@@ -134,6 +141,16 @@ class _TimerScreenState extends State<TimerScreen> with AutomaticKeepAliveClient
     super.dispose();
   }
 
+  void clearInputs() {
+    if (_timer?.isActive ?? false) {
+      _timer!.cancel();
+    }
+    setState(() {
+      _timeInSeconds = 0; // resets the timer to 0
+      _hoursController.clear();
+      _minutesController.clear();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -161,12 +178,7 @@ class _TimerScreenState extends State<TimerScreen> with AutomaticKeepAliveClient
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   Text(
-                    '${(_timeInSeconds ~/ 3600).toString().padLeft(
-                        2, '0')}:${((_timeInSeconds % 3600) ~/ 60)
-                        .toString()
-                        .padLeft(2, '0')}:${(_timeInSeconds % 60)
-                        .toString()
-                        .padLeft(2, '0')}',
+                    '${(_timeInSeconds ~/ 3600).toString().padLeft(2, '0')}:${((_timeInSeconds % 3600) ~/ 60).toString().padLeft(2, '0')}:${(_timeInSeconds % 60).toString().padLeft(2, '0')}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -214,6 +226,11 @@ class _TimerScreenState extends State<TimerScreen> with AutomaticKeepAliveClient
                   ElevatedButton(
                     onPressed: startTimer,
                     child: const Text('Start Timer'),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: clearInputs,
+                    child: const Text('Clear Timer'),
                   ),
                   // ... Other buttons
                 ],
