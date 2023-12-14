@@ -17,31 +17,38 @@ class TimerScreen extends StatefulWidget {
 
 // todo: add notifications for timer is done
 
-class _TimerScreenState extends State<TimerScreen>
-    with AutomaticKeepAliveClientMixin {
+class _TimerScreenState extends State<TimerScreen> with AutomaticKeepAliveClientMixin{
   late Timer? _timer;
   int _timeInSeconds = 0;
   final TextEditingController _hoursController = TextEditingController();
   final TextEditingController _minutesController = TextEditingController();
   final player = AudioPlayer();
-  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
   @override
   bool get wantKeepAlive => true;
 
   @override
-  void initState() {
+  void initState()
+  {
     super.initState();
-    var androidInitialize =
-        const AndroidInitializationSettings('ic_stat_notify.png');
-    var initializationsSettings =
-        InitializationSettings(android: androidInitialize);
+    _timer = null; // Initialize _timer as null.
+    var androidInitialize = const AndroidInitializationSettings('ic_stat_notify.png');
+    var initializationsSettings = InitializationSettings(android: androidInitialize);
     flutterLocalNotificationsPlugin.initialize(initializationsSettings);
   }
 
+  @override
+  void dispose() {
+    _timer?.cancel(); // use the conditional access operator to only call cancel if _timer is not null.
+    _hoursController.dispose();
+    _minutesController.dispose();
+    super.dispose();
+  }
+
   void startTimer() {
-    if (_timer != null && _timer!.isActive) {
+    // Cancel The existing timer if it's currently running
+    if (_timer?.isActive ?? false) {
       _timer!.cancel();
     }
 
@@ -53,7 +60,7 @@ class _TimerScreenState extends State<TimerScreen>
     if (_timeInSeconds > 0) {
       _timer = Timer.periodic(
         const Duration(seconds: 1),
-        (Timer timer) {
+            (Timer timer) {
           if (_timeInSeconds < 1) {
             timer.cancel();
             _onTimerEnd();
@@ -66,6 +73,7 @@ class _TimerScreenState extends State<TimerScreen>
       );
     }
   }
+
 
   Future<void> _onTimerEnd() async {
     showDialog(
@@ -109,8 +117,7 @@ class _TimerScreenState extends State<TimerScreen>
       priority: Priority.high,
     );
 
-    var generalNotificationDetails =
-        NotificationDetails(android: androidDetails);
+    var generalNotificationDetails = NotificationDetails(android: androidDetails);
 
     await flutterLocalNotificationsPlugin.show(
       0,
@@ -118,6 +125,7 @@ class _TimerScreenState extends State<TimerScreen>
       'Your timer has finished!',
       generalNotificationDetails,
     );
+
   }
 
   void pauseTimer() {
@@ -131,15 +139,10 @@ class _TimerScreenState extends State<TimerScreen>
     });
   }
 
-  @override
-  void dispose() {
-    if (_timer?.isActive ?? false) {
-      _timer!.cancel();
-    }
-    _hoursController.dispose();
-    _minutesController.dispose();
-    super.dispose();
-  }
+
+
+
+
 
   void clearInputs() {
     if (_timer?.isActive ?? false) {
@@ -151,6 +154,7 @@ class _TimerScreenState extends State<TimerScreen>
       _minutesController.clear();
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +182,12 @@ class _TimerScreenState extends State<TimerScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   Text(
-                    '${(_timeInSeconds ~/ 3600).toString().padLeft(2, '0')}:${((_timeInSeconds % 3600) ~/ 60).toString().padLeft(2, '0')}:${(_timeInSeconds % 60).toString().padLeft(2, '0')}',
+                    '${(_timeInSeconds ~/ 3600).toString().padLeft(
+                        2, '0')}:${((_timeInSeconds % 3600) ~/ 60)
+                        .toString()
+                        .padLeft(2, '0')}:${(_timeInSeconds % 60)
+                        .toString()
+                        .padLeft(2, '0')}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -204,6 +213,7 @@ class _TimerScreenState extends State<TimerScreen>
                           style: const TextStyle(color: Colors.red),
                         ),
                       ),
+
                       const SizedBox(width: 10),
                       Expanded(
                         child: TextFormField(
@@ -222,6 +232,7 @@ class _TimerScreenState extends State<TimerScreen>
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: startTimer,
