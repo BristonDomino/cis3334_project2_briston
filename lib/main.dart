@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      //scrollBehavior: const ConstantScrollBehavior(),
+      //scrollBehavior: const ConstantScrollBehavior(),s
       title: 'Focus Buddy',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

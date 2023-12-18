@@ -28,14 +28,25 @@ class _TimerScreenState extends State<TimerScreen> with AutomaticKeepAliveClient
   @override
   bool get wantKeepAlive => true;
 
+
   @override
   void initState()
   {
     super.initState();
     _timer = null; // Initialize _timer as null.
-    var androidInitialize = const AndroidInitializationSettings('ic_stat_notify.png');
-    var initializationsSettings = InitializationSettings(android: androidInitialize);
-    flutterLocalNotificationsPlugin.initialize(initializationsSettings);
+    initNotifications();
+    //showNotification('Timer Done','Your timer has finished!');
+  //   var androidInitialize = const AndroidInitializationSettings('ic_stat_notify.png');
+  //   var initializationsSettings = InitializationSettings(android: androidInitialize);
+  //   flutterLocalNotificationsPlugin.initialize(initializationsSettings);
+   }
+
+  initNotifications() async {
+    const AndroidInitializationSettings androidInitialize = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: androidInitialize,
+    );
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings,);
   }
 
   @override
@@ -47,6 +58,7 @@ class _TimerScreenState extends State<TimerScreen> with AutomaticKeepAliveClient
   }
 
   void startTimer() {
+    print(" StartTimer ");
     // Cancel The existing timer if it's currently running
     if (_timer?.isActive ?? false) {
       _timer!.cancel();
@@ -72,6 +84,20 @@ class _TimerScreenState extends State<TimerScreen> with AutomaticKeepAliveClient
         },
       );
     }
+  }
+
+  // Show a notification
+  Future<void> showNotification(String title, String message) async {
+    // Schedule the notification
+    const AndroidNotificationDetails  androidDetails = AndroidNotificationDetails(
+      'channelId',
+      'Local Notification',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+    const NotificationDetails generalNotificationDetails = NotificationDetails(android: androidDetails);
+
+    await flutterLocalNotificationsPlugin.show(0, title, message, generalNotificationDetails,);
   }
 
 
@@ -107,24 +133,28 @@ class _TimerScreenState extends State<TimerScreen> with AutomaticKeepAliveClient
     // Play timer done sound
     await player.play(AssetSource('audio/synth_bell.mp3'));
 
-    // THis is the Schedule the notification
-    // Schedule the notification
-    var androidDetails = const AndroidNotificationDetails(
-      'channelId',
-      'Local Notification',
-      //'channelDescription',
-      importance: Importance.high,
-      priority: Priority.high,
-    );
+    showNotification('Timer Done','Your timer has finished!');
 
-    var generalNotificationDetails = NotificationDetails(android: androidDetails);
 
-    await flutterLocalNotificationsPlugin.show(
-      0,
-      'Timer Done',
-      'Your timer has finished!',
-      generalNotificationDetails,
-    );
+    // // THis is the Schedule the notification
+    // // Schedule the notification
+    // var androidDetails = const AndroidNotificationDetails(
+    //   'channelId',
+    //   'Local Notification',
+    //   //'channelDescription',
+    //   importance: Importance.high,
+    //   priority: Priority.high,
+    // );
+    //
+    // var generalNotificationDetails = NotificationDetails(android: androidDetails);
+    //
+    // await flutterLocalNotificationsPlugin.show(
+    //   0,
+    //   'Timer Done',
+    //   'Your timer has finished!',
+    //   generalNotificationDetails,
+    // );
+
 
   }
 
@@ -138,11 +168,6 @@ class _TimerScreenState extends State<TimerScreen> with AutomaticKeepAliveClient
       _timeInSeconds = 0;
     });
   }
-
-
-
-
-
 
   void clearInputs() {
     if (_timer?.isActive ?? false) {
